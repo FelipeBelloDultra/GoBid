@@ -11,4 +11,5 @@ type API struct {
 	Sessions       *scs.SessionManager
 	UserService    services.UserService
 	ProductService services.ProductService
+	BidsService    services.BidsService
 }
