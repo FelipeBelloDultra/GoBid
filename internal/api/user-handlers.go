@@ -24,11 +24,16 @@ func (api *API) handleSignUpUser(w http.ResponseWriter, r *http.Request) {
 		data.Bio,
 	)
 	if err != nil {
-		if errors.Is(err, services.ErrDuplicatedEmailOrPassword) {
+		if errors.Is(err, services.ErrDuplicatedEmailOrUsername) {
 			_ = jsonutils.EncodeJSON(w, r, http.StatusUnprocessableEntity, map[string]any{
 				"error": "email or username already exists",
 			})
+			return
 		}
+		jsonutils.EncodeJSON(w, r, http.StatusInternalServerError, map[string]any{
+			"error": "internal server error",
+		})
+		return
 	}
 
 	_ = jsonutils.EncodeJSON(w, r, http.StatusCreated, map[string]any{
@@ -37,9 +42,56 @@ func (api *API) handleSignUpUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) handleSignInUser(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented")
+	data, problems, err := jsonutils.DecodeValidJSON[user.LoginUserReq](r)
+	if err != nil {
+		_ = jsonutils.EncodeJSON(w, r, http.StatusUnprocessableEntity, problems)
+		return
+	}
+
+	id, err := api.UserService.AuthenticateUser(
+		r.Context(),
+		data.Email,
+		data.Password,
+	)
+
+	if err != nil {
+		if errors.Is(err, services.ErrInvalidCredentials) {
+			_ = jsonutils.EncodeJSON(w, r, http.StatusUnauthorized, map[string]any{
+				"error": "invalid email or password",
+			})
+			return
+		}
+		jsonutils.EncodeJSON(w, r, http.StatusInternalServerError, map[string]any{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	err = api.Sessions.RenewToken(r.Context())
+	if err != nil {
+		jsonutils.EncodeJSON(w, r, http.StatusInternalServerError, map[string]any{
+			"error": "internal server error",
+		})
+		return
+	}
+	api.Sessions.Put(r.Context(), "AuthenticatedUserId", id)
+
+	jsonutils.EncodeJSON(w, r, http.StatusOK, map[string]any{
+		"message": "logged in successfully",
+	})
 }
 
 func (api *API) handleLogoutUser(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented")
+	err := api.Sessions.RenewToken(r.Context())
+	if err != nil {
+		jsonutils.EncodeJSON(w, r, http.StatusInternalServerError, map[string]any{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	api.Sessions.Remove(r.Context(), "AuthenticatedUserId")
+	jsonutils.EncodeJSON(w, r, http.StatusOK, map[string]any{
+		"message": "logged out successfully",
+	})
 }
