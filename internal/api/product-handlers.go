@@ -14,7 +14,7 @@ func (api *API) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		_ = jsonutils.EncodeJSON(w, r, http.StatusUnprocessableEntity, problems)
 		return
 	}
-	userID, ok := api.Sessions.Get(r.Context(), "AuthenticatedUserId").(uuid.UUID)
+	userID, ok := api.Sessions.Get(r.Context(), AuthenticationSessionKey).(uuid.UUID)
 	if !ok {
 		_ = jsonutils.EncodeJSON(w, r, http.StatusInternalServerError, map[string]any{
 			"error": "internal server error",

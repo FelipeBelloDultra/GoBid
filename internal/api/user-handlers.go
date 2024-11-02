@@ -74,7 +74,7 @@ func (api *API) handleSignInUser(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	api.Sessions.Put(r.Context(), "AuthenticatedUserId", id)
+	api.Sessions.Put(r.Context(), AuthenticationSessionKey, id)
 
 	jsonutils.EncodeJSON(w, r, http.StatusOK, map[string]any{
 		"message": "logged in successfully",
@@ -90,7 +90,7 @@ func (api *API) handleLogoutUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.Sessions.Remove(r.Context(), "AuthenticatedUserId")
+	api.Sessions.Remove(r.Context(), AuthenticationSessionKey)
 	jsonutils.EncodeJSON(w, r, http.StatusOK, map[string]any{
 		"message": "logged out successfully",
 	})
